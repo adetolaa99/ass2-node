@@ -2,6 +2,9 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
+const booksDbPath = path.join(__dirname, "database", "books.json");
+const authorsDbPath = path.join(__dirname, "database", "authors.json");
+
 const PORT = 3000;
 const HOSTNAME = "localhost";
 
@@ -11,18 +14,17 @@ server.listen(PORT, HOSTNAME, () => {
   console.log(`Server has been started on http://${HOSTNAME}:${PORT}`);
 });
 
-const booksDb = path.join(__dirname, "database", "books.json");
-const authorsDb = path.join(__dirname, "database", "authors.json");
-
 function requestHandler(req, res) {
+  //books
   if (req.url === "/books" && req.method === "GET") {
     getBooks(req, res);
   } else if (req.url === "/books" && req.method === "PUT") {
     updateBooks(req, res);
   } else if (req.url === "/books" && req.method === "DELETE") {
     deleteBooks(req, res);
+    //author
   } else if (req.url === "/books/author" && req.method === "GET") {
-    getBookAuthors(req, res);
+    getBookAuthor(req, res);
   } else if (req.url === "/books/author" && req.method === "POST") {
     addBookAuthor(req, res);
   } else if (req.url === "/books/author" && req.method === "PUT") {
@@ -32,7 +34,7 @@ function requestHandler(req, res) {
 
 // GET /books
 function getBooks(req, res) {
-  fs.readFile(booksDb, "utf8", (err, data) => {
+  fs.readFile(booksDbPath, "utf8", (err, data) => {
     if (err) {
       console.log(err);
       res.writeHead(400);
@@ -54,14 +56,13 @@ function updateBooks(req, res) {
     const detailsToUpdate = JSON.parse(parsedBook);
     const bookId = detailsToUpdate.id;
 
-    fs.readFile(booksDb, "utf8", (err, data) => {
+    fs.readFile(booksDbPath, "utf8", (err, data) => {
       if (err) {
-        console.log(err);
-        res.writeHead(400);
-        res.end("An error has occured...");
+        console.error("Error reading file:", err);
+        return;
       }
 
-      const booksObject = JSON.parse(books);
+      const booksObject = JSON.parse(data);
 
       const bookIndex = booksObject.findIndex((book) => book.id === bookId);
 
@@ -74,7 +75,7 @@ function updateBooks(req, res) {
       const updatedBook = { ...booksObject[bookIndex], ...detailsToUpdate };
       booksObject[bookIndex] = updatedBook;
 
-      fs.writeFile(booksDb, JSON.stringify(books), (err) => {
+      fs.writeFile(booksDbPath, JSON.stringify(booksObject), (err) => {
         if (err) {
           console.log(err);
           res.writeHead(500);
@@ -104,7 +105,7 @@ function deleteBooks(req, res) {
     const detailsToUpdate = JSON.parse(parsedBook);
     const bookId = detailsToUpdate.id;
 
-    fs.readFile(booksDb, "utf8", (err, books) => {
+    fs.readFile(booksDbPath, "utf8", (err, books) => {
       if (err) {
         console.log(err);
         res.writeHead(400);
@@ -123,7 +124,7 @@ function deleteBooks(req, res) {
 
       booksObject.splice(bookIndex, 1);
 
-      fs.writeFile(booksDb, JSON.stringify(booksObject), (err) => {
+      fs.writeFile(booksDbPath, JSON.stringify(booksObject), (err) => {
         if (err) {
           console.log(err);
           res.writeHead(500);
@@ -142,8 +143,8 @@ function deleteBooks(req, res) {
 }
 
 // GET /books/author
-function getBookAuthors(req, res) {
-  fs.readFile(authorsDb, "utf8", (err, data) => {
+function getBookAuthor(req, res) {
+  fs.readFile(authorsDbPath, "utf8", (err, data) => {
     if (err) {
       console.log(err);
       res.writeHead(400);
@@ -164,7 +165,7 @@ function addBookAuthor(req, res) {
     const newAuthor = JSON.parse(parsedAuthor);
     console.log(newAuthor);
 
-    fs.readFile(authorsDb, "utf8", (err, data) => {
+    fs.readFile(authorsDbPath, "utf8", (err, data) => {
       if (err) {
         console.log(err);
         res.writeHead(400);
@@ -173,7 +174,7 @@ function addBookAuthor(req, res) {
       const oldAuthors = JSON.parse(data);
       const allAuthors = [...oldAuthors, newAuthor];
 
-      fs.writeFile(authorsDb, JSON.stringify(allAuthors), (err) => {
+      fs.writeFile(authorsDbPath, JSON.stringify(allAuthors), (err) => {
         if (err) {
           console.log(err);
           res.writeHead(500);
@@ -184,7 +185,8 @@ function addBookAuthor(req, res) {
             })
           );
         }
-        res.end(JSON.stringify(newAuthor));
+        res.writeHead(200);
+        res.end("Author added successfully");
       });
     });
   });
@@ -201,7 +203,7 @@ function updateBookAuthor(req, res) {
     const detailsToUpdate = JSON.parse(parsedAuthor);
     const authorId = detailsToUpdate.id;
 
-    fs.readFile(authorsDb, "utf8", (err, authors) => {
+    fs.readFile(authorsDbPath, "utf8", (err, authors) => {
       if (err) {
         console.log(err);
         res.writeHead(400);
@@ -222,7 +224,7 @@ function updateBookAuthor(req, res) {
       const updatedAuthor = { ...authorsObj[authorIndex], ...detailsToUpdate };
       authorsObj[authorIndex] = updatedAuthor;
 
-      fs.writeFile(authorsDb, JSON.stringify(authorsObj), (err) => {
+      fs.writeFile(authorsDbPath, JSON.stringify(authorsObj), (err) => {
         if (err) {
           console.log(err);
           res.writeHead(500);
@@ -234,7 +236,7 @@ function updateBookAuthor(req, res) {
           );
         }
         res.writeHead(200);
-        res.end("Update successful:)");
+        res.end("Update successful");
       });
     });
   });
